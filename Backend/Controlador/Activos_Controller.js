@@ -1,11 +1,28 @@
 const db = require('../Modelo/DB');
 
+const {
+  validateCodigoActivo,
+  validateDescripcion,
+  validateFechaAlta,
+  validateEstatus
+} = require('../Validacion/Activos_Validaciones');
+
 exports.addActivo = (req, res) => {
   const { codigo_activo, descripcion, fecha_alta, estatus, origen } = req.body;
 
-  // Validación de longitud del código de activo
-  if (codigo_activo.toString().length !== 13) {
-      return res.status(400).send('El código de activo debe tener exactamente 13 caracteres numéricos.');
+  // Validaciones
+  const codigoActivoError = validateCodigoActivo(codigo_activo);
+  const descripcionError = validateDescripcion(descripcion);
+  const fechaAltaError = validateFechaAlta(fecha_alta);
+  const estatusError = validateEstatus(estatus);
+
+  if (codigoActivoError || descripcionError || fechaAltaError || estatusError) {
+      return res.status(400).send({
+          codigoActivoError,
+          descripcionError,
+          fechaAltaError,
+          estatusError
+      });
   }
 
   const query = 'INSERT INTO activos (codigo_activo, descripcion, fecha_alta, estatus, origen) VALUES (?, ?, ?, ?, ?)';
@@ -19,12 +36,27 @@ exports.addActivo = (req, res) => {
 
 exports.getActivoStatus = (req, res) => {
     const { codigo } = req.params;
+
+      // Validaciones
+    const codigoActivoError = validateCodigoActivo(codigo);
+
+    if (codigoActivoError) {
+        return res.status(400).send({
+            codigoActivoError
+        });
+    }
+
     const query = 'SELECT estatus FROM activos WHERE codigo_activo = ?';
     db.query(query, [codigo], (err, result) => {
         if (err) {
             return res.status(500).send(err);
         }
-        res.send(result[0]);
+        
+        if (result[0] == null){
+          res.send("Codigo del Activo No Encontrado");
+        }else{
+          res.send(result[0]);
+        }
     });
 };
 
